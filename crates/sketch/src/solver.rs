@@ -26,7 +26,7 @@ use crate::union_find::{find, union};
 
 #[path = "cursor.rs"]
 mod cursor;
-pub use cursor::{move_line_towards, move_point_towards};
+pub use cursor::{PointMotion, move_line_towards, move_point_towards, point_motion};
 
 #[path = "redundancy.rs"]
 mod redundancy;

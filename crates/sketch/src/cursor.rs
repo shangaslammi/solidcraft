@@ -24,6 +24,117 @@ const TOTAL_CORRECTION_ITERS: usize = 256;
 /// uses 1e-7 too.
 const NULL_SPACE_TOL: f64 = 1e-7;
 
+/// The instantaneous motion a point's design constraints permit at the current pose.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PointMotion {
+    /// Both coordinates are determined, including by constraints on other points.
+    Fixed,
+    /// One tangent direction, expressed as a unit vector in sketch coordinates.
+    /// Its sign carries no meaning. The reachable locus may be curved.
+    Along(Vec2),
+    /// Two independent directions in the sketch plane.
+    Free,
+    /// The pose is invalid or unsolved, or analysis exceeded its work or size limit.
+    Unavailable,
+}
+
+/// Classify every point in `point`'s cursor component, in point-index order, without
+/// changing the sketch. Cache the results together until the pose or constraints change.
+/// Locked points have no solver variables and return a singleton result: they are fixed
+/// by construction even if a constraint involving only constants is unsatisfied. An invalid
+/// point or failure before component discovery returns `(point, Unavailable)` alone.
+///
+/// This is a tangent-space analysis of a solved component, using the same Jacobian and scaled
+/// null space as cursor motion. Unsolved constraints in other components do not affect it.
+/// It does not prove finite travel or classify singular poses
+/// beyond their linearization. Dense work is limited to 400 variables and reserved from
+/// `budget` before it begins; unavailable analysis never implies a fixed point.
+pub fn point_motion(sk: &Sketch, point: usize, budget: &mut Budget) -> Vec<(usize, PointMotion)> {
+    let unavailable = vec![(point, PointMotion::Unavailable)];
+    let setup_work = sk.points.len().saturating_add(sk.curves.len()).saturating_add(sk.constraints.len()).max(1);
+    if !budget.try_charge(setup_work) || sk.points.get(point).is_none() || !in_range(sk) {
+        return unavailable;
+    }
+    let lay = layout(sk, &Hold::default());
+    let Some(px) = lay.pvar.get(point).copied().flatten() else {
+        return vec![(point, PointMotion::Fixed)];
+    };
+    let (blocks, _) = build_blocks(sk, &lay, &points_on_curves(sk));
+    let vars = component_variables(&lay, &blocks, [px]);
+    let mut result: Vec<_> = lay
+        .pvar
+        .iter()
+        .enumerate()
+        .filter(|(_, v)| v.is_some_and(|v| vars.binary_search(&v).is_ok()))
+        .map(|(p, _)| (p, PointMotion::Unavailable))
+        .collect();
+    if vars.len() > MAX_VARIABLES {
+        return result;
+    }
+    let sub = component_blocks(&blocks, &vars);
+    let n = vars.len();
+    let jacobian_work = residual_work(&lay, &sub).saturating_mul(n.saturating_mul(2).saturating_add(1));
+    if !budget.try_charge(jacobian_work) {
+        return result;
+    }
+    let mut col = vec![usize::MAX; lay.n];
+    columns(&mut col, &vars, &vars);
+    let mut x = initial_x(sk, &lay);
+    let (r, j, _) = local_system(sk, &lay, &sub, &mut x, &col, n);
+    if max_abs(&r) >= ACCEPT {
+        return result;
+    }
+    let Some(z) = null_space(j, &mut Some(&mut *budget)) else { return result };
+    if !budget.try_charge(result.len().saturating_mul(z.len()).saturating_mul(8)) {
+        return result;
+    }
+    // In the unscaled orthonormal basis, a projected singular value measures point
+    // displacement per unit displacement of the whole component. Use an absolute
+    // threshold: normalizing each point's projection would turn numerical leakage at
+    // an indirectly fixed point into a full direction of motion.
+    let threshold = NULL_SPACE_TOL * NULL_SPACE_TOL;
+    for (p, motion) in &mut result {
+        let Some(v) = lay.pvar.get(*p).copied().flatten().and_then(|v| vars.binary_search(&v).ok()) else { continue };
+        let (high, low, mut axis) = projected_axes(&z, &[(v, Vec2::X)]);
+        if axis.x < 0.0 || (axis.x == 0.0 && axis.y < 0.0) {
+            axis = axis * -1.0;
+        }
+        *motion = if high <= threshold {
+            PointMotion::Fixed
+        } else if low <= threshold {
+            PointMotion::Along(axis)
+        } else {
+            PointMotion::Free
+        };
+    }
+    result
+}
+
+/// Cursor connectivity joins both coordinates of each grabbed point and all variables
+/// read by a constraint block. A line grab may join otherwise disconnected endpoints.
+fn component_variables(lay: &Layout, blocks: &[(super::Block<'_>, Vec<usize>)], anchors: impl IntoIterator<Item = usize>) -> Vec<usize> {
+    let mut anchors = anchors.into_iter();
+    let Some(px) = anchors.next() else { return Vec::new() };
+    let mut parent: Vec<usize> = (0..lay.n).collect();
+    for v in std::iter::once(px).chain(anchors) {
+        union(&mut parent, px, v);
+        union(&mut parent, px, v + 1);
+    }
+    for (_, vars) in blocks {
+        if let Some(&first) = vars.first() {
+            for &v in vars.iter().skip(1) {
+                union(&mut parent, first, v);
+            }
+        }
+    }
+    let root = find(&mut parent, px);
+    (0..lay.n).filter(|v| find(&mut parent, *v) == root).collect()
+}
+
+fn component_blocks<'a>(blocks: &[(super::Block<'a>, Vec<usize>)], vars: &[usize]) -> Vec<(super::Block<'a>, Vec<usize>)> {
+    blocks.iter().filter(|(_, v)| v.iter().any(|i| vars.binary_search(i).is_ok())).map(|(b, v)| (super::copy_block(b), v.clone())).collect()
+}
+
 /// Move a point toward `target` using freedom left by the design constraints. `max_step`
 /// bounds the full variable displacement before constraint correction; `valid` can reject
 /// a corrected candidate (for example, an arc crossing its own start). Only feasible,
@@ -88,27 +199,15 @@ fn move_cursor_towards(
     let lay = layout(&problem, &Hold::default());
     let active: Vec<_> =
         points.iter().filter(|(_, w)| w.x != 0.0 || w.y != 0.0).filter_map(|(p, w)| Some((lay.pvar.get(*p).copied().flatten()?, *w))).collect();
-    let Some(&(px, _)) = active.first() else { return false };
+    if active.is_empty() {
+        return false;
+    }
     let (blocks, _) = build_blocks(&problem, &lay, &points_on_curves(&problem));
-    let mut parent: Vec<usize> = (0..lay.n).collect();
-    for &(v, _) in &active {
-        union(&mut parent, px, v);
-        union(&mut parent, px, v + 1);
-    }
-    for (_, vars) in &blocks {
-        if let Some(&first) = vars.first() {
-            for &v in vars.iter().skip(1) {
-                union(&mut parent, first, v);
-            }
-        }
-    }
-    let root = find(&mut parent, px);
-    let vars: Vec<usize> = (0..lay.n).filter(|v| find(&mut parent, *v) == root).collect();
+    let vars = component_variables(&lay, &blocks, active.iter().map(|(v, _)| *v));
     if vars.len() > MAX_VARIABLES {
         return false;
     }
-    let sub: Vec<_> =
-        blocks.iter().filter(|(_, v)| v.iter().any(|i| vars.binary_search(i).is_ok())).map(|(b, v)| (super::copy_block(b), v.clone())).collect();
+    let sub = component_blocks(&blocks, &vars);
     // Reserve both initial and final all-block validation before starting cursor work.
     // An exhausted search can then keep its best feasible pose, including unrelated blocks.
     if !within_budget(&mut budget, residual_work(&lay, &blocks).saturating_mul(2)) {
@@ -274,6 +373,9 @@ fn in_range(sk: &Sketch) -> bool {
 }
 
 fn null_space(j: Mat, budget: &mut Option<&mut Budget>) -> Option<Vec<Vec<f64>>> {
+    if j.data.iter().any(|x| !x.is_finite()) {
+        return None;
+    }
     // A pivot processes at most all rows and columns. A rectangular matrix has at
     // most as many pivots as its smaller dimension.
     let reduction_work = j.rows.saturating_mul(j.cols).saturating_mul(j.rows.min(j.cols));
@@ -352,7 +454,7 @@ fn cursor_direction(v: &[f64], axes: &[(usize, Vec2)]) -> Vec2 {
     axes.iter().fold(Vec2::ZERO, |at, (i, w)| at + weighted(Vec2::new(v.get(*i).copied().unwrap_or(0.0), v.get(*i + 1).copied().unwrap_or(0.0)), *w))
 }
 
-fn target_step(z: &[Vec<f64>], axes: &[(usize, Vec2)], error: Vec2) -> Vec<f64> {
+fn projected_axes(z: &[Vec<f64>], axes: &[(usize, Vec2)]) -> (f64, f64, Vec2) {
     let mut a = 0.0;
     let mut b = 0.0;
     let mut c = 0.0;
@@ -364,7 +466,15 @@ fn target_step(z: &[Vec<f64>], axes: &[(usize, Vec2)], error: Vec2) -> Vec<f64> 
     }
     let high = 0.5 * (a + c + (a - c).hypot(2.0 * b));
     let low = if high > 0.0 { (a * c - b * b).max(0.0) / high } else { 0.0 };
-    let axis = if a >= c { Vec2::new(high - c, b) } else { Vec2::new(b, high - a) }.normalized().unwrap_or(if a >= c { Vec2::X } else { Vec2::Y });
+    // Eigenvectors have arbitrary magnitude. Scale before geometric normalization so a
+    // small but meaningful projection does not fall below Vec2's length tolerance.
+    let direction = if a >= c { Vec2::new(high - c, b) } else { Vec2::new(b, high - a) };
+    let axis = if high > 0.0 { (direction / high).normalized() } else { None }.unwrap_or(if a >= c { Vec2::X } else { Vec2::Y });
+    (high, low, axis)
+}
+
+fn target_step(z: &[Vec<f64>], axes: &[(usize, Vec2)], error: Vec2) -> Vec<f64> {
+    let (high, low, axis) = projected_axes(z, axes);
     let other = Vec2::new(-axis.y, axis.x);
     let mut u = if high > 1e-12 { axis * (axis.dot(error) / high) } else { Vec2::ZERO };
     if low > high * 1e-8 {

@@ -83,6 +83,62 @@ fn line_pts(sk: &Sketch, l: usize) -> (Vec2, Vec2) {
 }
 
 #[test]
+fn point_motion_distinguishes_indirect_pins_tangents_and_free_points() {
+    for scale in [1e-4, 1.0, 1e4] {
+        let mut sk = Sketch::new();
+        let b = sk.add_point(v(3.0, 4.0) * scale, None).unwrap();
+        let c = sk.add_point(v(6.0, 8.0) * scale, None).unwrap();
+        let d = sk.add_point(v(-2.0, 7.0) * scale, None).unwrap();
+        sk.add_constraint(ConstraintKind::DistanceX { p: 0, q: b, value: 3.0 * scale }, None).unwrap();
+        sk.add_constraint(ConstraintKind::DistanceY { p: 0, q: b, value: 4.0 * scale }, None).unwrap();
+        sk.add_constraint(ConstraintKind::Distance { p: b, q: c, value: 5.0 * scale }, None).unwrap();
+        let at = sk.clone();
+        let motions = point_motion(&sk, c, &mut Budget::full());
+        // B is fixed even though its component also contains the moving point C.
+        assert_eq!(motions.first(), Some(&(b, PointMotion::Fixed)), "{motions:?}");
+        let Some((_, PointMotion::Along(axis))) = motions.iter().find(|(p, _)| *p == c) else { panic!("{motions:?}") };
+        assert!((axis.len() - 1.0).abs() < 1e-10 && axis.dot(v(-0.8, 0.6)).abs() > 1.0 - 1e-8, "scale {scale}: {axis:?}");
+        assert_eq!(point_motion(&sk, 0, &mut Budget::full()), vec![(0, PointMotion::Fixed)]);
+        assert_eq!(point_motion(&sk, d, &mut Budget::full()), vec![(d, PointMotion::Free)]);
+        assert_eq!(sk, at, "motion analysis changed the pose");
+    }
+}
+
+#[test]
+fn point_motion_preserves_small_oblique_projected_directions() {
+    let mut sk = Sketch::new();
+    let p = sk.add_point(v(3e-5, 4e-5), None).unwrap();
+    let end = sk.add_point(v(3.0, 4.0), None).unwrap();
+    let line = sk.add_line_pts(0, end, None).unwrap();
+    sk.add_constraint(ConstraintKind::Distance { p: 0, q: p, value: 5e-5 }, None).unwrap();
+    sk.add_constraint(ConstraintKind::PointOnCurve { p, c: line }, None).unwrap();
+    // Rotating the long arm moves P only 1e-5 as far. Its Gram eigenvalue is ~1e-10,
+    // but its tangent is still oblique; a geometric vector-length cutoff loses it.
+    let motions = point_motion(&sk, p, &mut Budget::full());
+    let Some((_, PointMotion::Along(axis))) = motions.iter().find(|(i, _)| *i == p) else { panic!("{motions:?}") };
+    assert!(axis.dot(v(-0.8, 0.6)).abs() > 1.0 - 1e-8, "{motions:?}");
+}
+
+#[test]
+fn point_motion_refuses_unavailable_analysis_without_reporting_fixed() {
+    let mut sk = Sketch::new();
+    let p = sk.add_point(v(3.0, 4.0), None).unwrap();
+    sk.add_constraint(ConstraintKind::Distance { p: 0, q: p, value: 5.0 }, None).unwrap();
+    let mut exhausted = Budget::new(0);
+    assert_eq!(point_motion(&sk, p, &mut exhausted), vec![(p, PointMotion::Unavailable)]);
+    assert!(exhausted.exhausted());
+    sk.points[p].pos = v(6.0, 8.0);
+    assert_eq!(point_motion(&sk, p, &mut Budget::full()), vec![(p, PointMotion::Unavailable)]);
+    // A failed component must not hide a healthy component's remaining freedom.
+    let healthy = sk.add_point(v(-3.0, 4.0), None).unwrap();
+    sk.add_constraint(ConstraintKind::Distance { p: 0, q: healthy, value: 5.0 }, None).unwrap();
+    let motions = point_motion(&sk, healthy, &mut Budget::full());
+    let Some((_, PointMotion::Along(axis))) = motions.first() else { panic!("{motions:?}") };
+    assert!(axis.dot(v(0.8, 0.6)).abs() > 1.0 - 1e-8, "{motions:?}");
+    assert_eq!(point_motion(&sk, 0, &mut Budget::full()), vec![(0, PointMotion::Fixed)]);
+}
+
+#[test]
 fn fully_constrained_rectangle() {
     let mut sk = Sketch::new();
     let l = rect(&mut sk, [v(0.3, -0.2), v(38.0, 1.0), v(41.0, 29.0), v(-1.0, 31.0)]);
