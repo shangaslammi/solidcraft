@@ -139,15 +139,17 @@
 //!   each.
 
 use crate::curve::curve::p2::Curve;
+use crate::curve::curve::p6::is_measurable_box;
 use crate::curve::curve::p8::CurveIntersectOptions;
 use crate::curve::curve::CurveKind;
-use crate::error::{passed_on, EntityRef, Result, SolidError};
+use crate::error::{ignored, passed_on, EntityRef, Result, SolidError};
 use crate::geom::extent1d::Extent1d;
 use crate::geom::geom_utility::p1::{circle_coplanar_circle_intersect_in_contact, CircleCircle};
 use crate::geom::global_solver::SolverOperation;
 use crate::geom::solution_array::{ObjectKind, SolutionObject, SolutionType};
 use crate::geom::tol::{
-    contact_tol_3d, xsect_tol3d, xsect_tol_3d_from_zones, zone_tol3d, USE_DEFAULT,
+    coincidence_reach_3d, contact_tol_3d, xsect_tol3d, xsect_tol_3d_from_zones, zone_tol3d,
+    USE_DEFAULT,
 };
 use crate::intersect::curve_class::p5::ExtractOptions;
 use crate::intersect::curve_class::{ClassificationInit, CurveClassification, CurveInterval};
@@ -156,6 +158,7 @@ use crate::intersect::point_class::{
 };
 use crate::kernel::Kernel;
 use crate::math::{max2, min2, Point2, Point3, Vec3, BIG_DOUBLE, EFF_ZERO, EFF_ZERO_SQRT};
+use crate::nurbs::b_spline_curve::p2::BoundingBoxRequest;
 use crate::nurbs::b_spline_curve_n_lib::TrimMode;
 use crate::nurbs::knots::Side;
 use crate::query::face::p2 as face_p2;
@@ -2062,6 +2065,14 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
                 let ivl2 = geometry
                     .edge_interval(edge2)
                     .ok_or(dangling("edge is unknown"))?;
+                let edge_tol1 = geometry
+                    .topology_tolerance(edge1)
+                    .ok_or(dangling("edge is unknown"))?;
+                let edge_tol2 = geometry
+                    .topology_tolerance(edge2)
+                    .ok_or(dangling("edge is unknown"))?;
+                // Both classifications carry the first edge's curve and its source zone.
+                let curve_tol = max2(tol, edge_tol1);
 
                 // arbitrary - pick XSectFace as first Edge Face
                 f1 = Some(*faces1.first().ok_or(dangling("edge has no faces"))?);
@@ -2071,13 +2082,35 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
                 let sols = {
                     let c1 = curve_of(&*geometry, h1)?;
                     let c2 = curve_of(&*geometry, h2)?;
+                    // Read the edge zones with rounding at their trimmed curves' scale.
+                    // An unavailable box contributes zero extra rounding, as in the checker.
+                    let req = BoundingBoxRequest {
+                        normal: true,
+                        ..BoundingBoxRequest::default()
+                    };
+                    let mut size = 0.0;
+                    for (curve, interval) in [(c1, &ivl1), (c2, &ivl2)] {
+                        if let Some(bounds) =
+                            ignored(curve.calculate_bounding_box(k, interval, req, true))?
+                                .and_then(|boxes| boxes.normal)
+                        {
+                            if bounds.is_defined()
+                                && bounds.is_bounded()
+                                && !bounds.has_negative_volume()
+                                && is_measurable_box(&bounds)
+                            {
+                                size = max2(size, bounds.max_dimension());
+                            }
+                        }
+                    }
+                    let coincidence_tol = coincidence_reach_3d(k, edge_tol1, edge_tol2, size);
                     ignore_soft(passed_on(
                         c1.global_coincidence_checker::<CurveHandle>(
                             k,
                             &ivl1,
                             c2,
                             &ivl2,
-                            tol,
+                            coincidence_tol,
                             true,
                             [None, None],
                         ),
@@ -2092,8 +2125,8 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
                         // PEs expect the same curve classified against each face
                         let ivl = Extent1d::from_min_max(sol.start.param(0)?, sol.end.param(0)?);
                         let c1h = h1.ok_or(dangling("edge has no curve"))?;
-                        let mut cc1 = new_curve_classification(k, c1h, ivl, tol)?;
-                        let mut cc2 = new_curve_classification(k, c1h, ivl, tol)?;
+                        let mut cc1 = new_curve_classification(k, c1h, ivl, curve_tol)?;
+                        let mut cc2 = new_curve_classification(k, c1h, ivl, curve_tol)?;
 
                         // Classify the coincident curves against their faces
                         let face1 = f1.ok_or(dangling("face is null"))?;

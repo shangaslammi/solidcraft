@@ -398,6 +398,12 @@ The sites move to the rule one at a time (§10, "The coincidence rule in migrati
 - a point of a curve on the vertex where a seam ends on a boundary of material (the seam stretch
   of `edge_solutions`, `intersect/curve_class/p9.rs`; "Seams and poles" below), with the proto
   vertices: within the larger tolerance, not the band of both.
+- When two source edges produce overlapping proto edges, `resolve_overlapping_proto_edges`
+  (`topology/proto_topology/p3.rs`) compares their curves over the trimmed intervals.
+  It uses `coincidence_reach_3d` with both edge tolerances and accounts for rounding at the
+  scale of the trimmed curves. This keeps a shared boundary when the manager's approximation
+  tolerance is smaller than the gap. Both faces then classify the first edge's curve with
+  its own zone tolerance, using the manager's tolerance as a lower bound.
 
 Still on the intersection tolerance:
 - an intersection curve along an edge (`edge_solutions`, `intersect/curve_class/p9.rs`): a
