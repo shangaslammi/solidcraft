@@ -404,6 +404,15 @@ The sites move to the rule one at a time (§10, "The coincidence rule in migrati
   scale of the trimmed curves. This keeps a shared boundary when the manager's approximation
   tolerance is smaller than the gap. Both faces then classify the first edge's curve with
   its own zone tolerance, using the manager's tolerance as a lower bound.
+- At the outer limit of the intersection search, the ordinary vertex and edge tests
+  (`intersect_vertices_in` and `edge_solutions`) can prove two 3D ellipse arcs, or an arc
+  and a vertex, are separate. Every point of an ellipse lies between its smaller and larger
+  semi-axis radii from its centre. A vertex has both radii zero. The triangle inequality
+  then gives a lower bound on the separation over the entire arcs. When this exceeds the
+  coincidence tolerance and the overlap of the search bands is at most coordinate rounding,
+  the classifier discards the candidate. Otherwise, roundoff around two concentric rims
+  at the limit can put one arc on the other over only part of a turn and assign both rings
+  one vertex. The search still uses its existing allowances for imported gaps.
 
 Still on the intersection tolerance:
 - an intersection curve along an edge (`edge_solutions`, `intersect/curve_class/p9.rs`): a

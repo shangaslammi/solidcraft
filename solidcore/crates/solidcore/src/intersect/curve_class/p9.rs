@@ -38,6 +38,7 @@ use crate::curve::curve::p6::DroppedPoint;
 use crate::curve::curve::p8::CurveIntersectOptions;
 use crate::curve::curve::Curve;
 use crate::curve::curve_cache::CurveCache;
+use crate::curve::ellipse::RadialSupport;
 use crate::error::{ignored, Result, SolidError};
 use crate::geom::context::ALL_MARKS;
 use crate::geom::extent1d::Extent1d;
@@ -406,6 +407,16 @@ impl<O: ClassObject> CurveClassification<O> {
             if let Some(gap) = edge.face_gap {
                 if gap > tolerance {
                     tolerance = gap * 1.1;
+                }
+            }
+        }
+        // Resolve the open search-band boundary for ordinary analytic contacts.
+        if !options.has_big_gaps && !self.doing_fillets() && edge.seam.is_none() {
+            if let (Some(source), Some(target)) =
+                (RadialSupport::curve(working), RadialSupport::curve(target))
+            {
+                if source.disjoint(k, source_zone, target, edge_zone, summed) {
+                    return Ok((Vec::new(), tolerance));
                 }
             }
         }

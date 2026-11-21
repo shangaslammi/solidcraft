@@ -66,6 +66,7 @@ use super::{
 };
 use crate::curve::crv_on_surf::CrvOnSurf;
 use crate::curve::curve::p2::{Curve, CurveKind};
+use crate::curve::ellipse::RadialSupport;
 use crate::error::{ignore_status, ignored, Result, SolidError};
 use crate::geom::extent1d::Extent1d;
 use crate::geom::extent3d::Extent3d;
@@ -982,6 +983,20 @@ impl<O: ClassObject> CurveClassification<O> {
                 has_big_gaps,
                 tolerance,
             )?;
+            // Resolve the open boundary of ordinary analytic supports' search band.
+            if !has_big_gaps && !self.doing_fillets() && !pole && wrapped.is_none() {
+                if RadialSupport::curve(self.curve_geometry(geometry)?).is_some_and(|support| {
+                    support.disjoint(
+                        k,
+                        source_zone,
+                        RadialSupport::point(point),
+                        vertex_zone,
+                        summed,
+                    )
+                }) {
+                    continue;
+                }
+            }
             // (not upstream, with `Kernel::memoize_curve_caches`) a vertex farther from the
             // curve's reach than the drop's tolerance has no solution: it is passed over
             // after everything above, which may fail, and before anything that may edit

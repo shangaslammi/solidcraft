@@ -18,7 +18,7 @@ use solidcore_ops::{
     blend, make_box, make_cone, make_sphere, session, Blend, Body, BooleanOp, CheckLevel, Corners,
     Error, PointClass,
 };
-use solidcore_record::brep::Brep as Record;
+use solidcore_record::brep::{Brep as Record, Surface};
 use solidcore_record::{Loop2, Plane, Region2, Seg2, Vec2};
 
 fn all_fixes() {
@@ -3445,7 +3445,10 @@ fn a_short_edge_joined_onto_a_body_read_coarser_is_kept() {
 /// The lower rim of the clipped sphere has radius sqrt(10² − 6²) = 8. A bore starting
 /// in that face opens to the exterior even when its rim is only one tolerance inside.
 /// The volume alone cannot distinguish the opening from a sealed cylindrical void.
+/// Two tolerances inside leaves an annulus. Two tolerances outside meets the sphere
+/// directly at z = −sqrt(10² − radius²).
 #[test]
+#[allow(clippy::disallowed_methods)] // the test's closed forms
 fn a_bore_starting_at_a_clipped_spheres_rim_opens_the_bottom() {
     let sphere = make_sphere([0.0; 3], 10.0).unwrap();
     let above = make_box([-11.0, -11.0, 7.0], [22.0, 22.0, 11.0]).unwrap();
@@ -3458,7 +3461,14 @@ fn a_bore_starting_at_a_clipped_spheres_rim_opens_the_bottom() {
         .unwrap();
     let target_volume = volume(&target);
     let z = [0.0, 0.0, 1.0];
-    for (inset, rim_hit_z) in [(1e-5, 0.0), (5e-6, 0.0), (1e-4, -6.0)] {
+    for (inset, rim_hit_z) in [
+        (1e-5, 0.0),
+        (5e-6, 0.0),
+        (1e-4, -6.0),
+        (-1.01e-5, 0.0),
+        (2e-5, 0.0),
+        (-2e-5, 0.0),
+    ] {
         let radius = 8.0 - inset;
         let circle = Curve::Arc {
             center: [0.0, 0.0, -6.0],
@@ -3470,9 +3480,48 @@ fn a_bore_starting_at_a_clipped_spheres_rim_opens_the_bottom() {
         };
         let bore = extrude(&[circle], z, 6.0, 0.0, DraftCorner::default(), true).unwrap();
         let cut = boolean(target.copy().unwrap(), bore, BooleanOp::Subtract)
-            .unwrap()
+            .unwrap_or_else(|error| panic!("inset {inset}: {error:?}"))
             .unwrap();
-        let (record, order) = cut.to_record().unwrap();
+        let (record, order) = cut
+            .to_record()
+            .unwrap_or_else(|error| panic!("inset {inset}: export {error:?}"));
+        if inset.abs() == 2e-5 {
+            let bottom: Vec<_> = record
+                .faces
+                .iter()
+                .enumerate()
+                .filter(|(_, face)| match &face.surface {
+                    Surface::Plane { origin, .. } | Surface::PlaneThrough { origin, .. } => {
+                        (origin[2] + 6.0).abs() < 1e-8
+                    }
+                    _ => false,
+                })
+                .map(|(i, _)| i)
+                .collect();
+            if inset > 0.0 {
+                let area: f64 = bottom
+                    .iter()
+                    .map(|&face| cut.face_area(&order, face, 1e-10).unwrap())
+                    .sum();
+                let want = PI * (8.0 * 8.0 - radius * radius);
+                assert!(
+                    (area - want).abs() < 1e-8,
+                    "inset {inset}: bottom area {area}, expected {want}"
+                );
+            } else {
+                assert!(bottom.is_empty(), "inset {inset}: bottom faces {bottom:?}");
+                let lowest = record
+                    .vertices
+                    .iter()
+                    .map(|v| v.point[2])
+                    .fold(f64::INFINITY, f64::min);
+                let height = -(100.0 - radius * radius).sqrt();
+                assert!(
+                    (lowest - height).abs() < 1e-8,
+                    "inset {inset}: lowest vertex {lowest}, expected {height}"
+                );
+            }
+        }
         // Both rays see the ceiling except where the wider inset leaves material at the rim.
         for (x, height) in [(0.0, 0.0), (8.0 - 5e-5, rim_hit_z)] {
             let hit = cut
@@ -3486,10 +3535,11 @@ fn a_bore_starting_at_a_clipped_spheres_rim_opens_the_bottom() {
             );
         }
         assert_eq!(record.shells.len(), 1, "inset {inset}");
-        assert!(near(
-            volume(&cut),
-            target_volume - PI * radius * radius * 6.0
-        ));
+        // Beyond the rim the tool includes a thin slice outside the sphere.
+        let z0 = (100.0 - radius * radius).sqrt().min(6.0);
+        let h = 6.0 - z0;
+        let want = target_volume - PI * radius * radius * 6.0 + PI * h * h * (z0 + h / 3.0);
+        assert!(near(volume(&cut), want), "inset {inset}");
         let check = cut.check(CheckLevel::All).unwrap();
         assert!(check.is_valid(), "inset {inset}: {}", check.text);
     }
