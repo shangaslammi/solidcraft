@@ -984,8 +984,10 @@ impl<O: ClassObject> CurveClassification<O> {
                 tolerance,
             )?;
             // Resolve the open boundary of ordinary analytic supports' search band.
-            if !has_big_gaps && !self.doing_fillets() && !pole && wrapped.is_none() {
-                if RadialSupport::curve(self.curve_geometry(geometry)?).is_some_and(|support| {
+            let ordinary_contact =
+                !has_big_gaps && !self.doing_fillets() && !pole && wrapped.is_none();
+            if ordinary_contact
+                && RadialSupport::curve(self.curve_geometry(geometry)?).is_some_and(|support| {
                     support.disjoint(
                         k,
                         source_zone,
@@ -993,9 +995,9 @@ impl<O: ClassObject> CurveClassification<O> {
                         vertex_zone,
                         summed,
                     )
-                }) {
-                    continue;
-                }
+                })
+            {
+                continue;
             }
             // (not upstream, with `Kernel::memoize_curve_caches`) a vertex farther from the
             // curve's reach than the drop's tolerance has no solution: it is passed over
