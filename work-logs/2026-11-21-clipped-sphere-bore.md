@@ -1,29 +1,35 @@
 # A bore starting at a clipped sphere’s rim
 
-Clipping a 10 mm-radius sphere at z = −6 and 7 mm leaves a bottom disc of radius 8 mm.
-On upstream main `22a3aa1df`, subtracting a coaxial cylinder from that disc up to z = 0
-left a sealed cavity when the cylinder’s radius was 0.00001 mm inside the rim. The disc and
-the tool cap both covered the mouth. A ray from below hit the skin at z = −6 mm, even though
-the volume matched the analytic result and every body check passed.
-
-The face intersections found the shared rim. When the boolean rebuilt the overlapping edges,
-it checked them at 0.000005 mm, half the tolerance of either edge, and discarded the rim.
-Commit `2e8401099` uses both edges’ zone tolerances and the kernel’s existing rounding
-allowance for this comparison.
+A 10 mm-radius sphere clipped at z = −6 and 7 mm has a bottom disc of radius 8 mm.
+A coaxial cylinder cuts from that disc up to z = 0. On upstream `22a3aa1df`, when
+its radius was 0.00001 mm inside the rim, the volume and every body check passed,
+yet a ray up the bore hit a zero-thickness skin at z = −6 mm.
 
 | Bore radius minus rim radius | Before | After |
 | --- | --- | --- |
-| −0.000005 mm | Only a quarter of the rim survived. The cut returned the unbored volume. | Open bore, one shell, volume 2292.3169475 mm³. |
-| −0.00001 mm | A complete disc covered the bore. | Four faces in one shell. The ray reaches the ceiling at z = 0. Volume 2292.3184555 mm³. |
-| −0.0001 mm | A narrow annulus surrounds the opening. | The annulus survives, with area 0.005026517 mm². |
+| −0.000005 mm | Only a quarter of the shared rim survived. The cut returned the unbored volume. | Open bore, one shell, volume 2292.3169475 mm³. |
+| −0.00001 mm | A complete disc and the tool’s cap sealed the bore. | One open bore with four faces. A ray up its axis reaches the ceiling at z = 0. |
+| −0.00002 mm | The annulus shared a vertex between its two rims and failed the full body check. Its measured area was 0.000845309 mm². | The two rims have distinct vertices. The bottom face measures 0.001005308 mm², matching π(8² − 7.99998²). |
+| +0.00002 mm | The result was nonmanifold and could not be written to a B-rep record. | The bore wall meets the sphere at z = −5.999973333 mm. The bottom disc is gone. |
+| −0.0001 mm | A wider annulus surrounded the opening. | The annulus still measures 0.005026517 mm². |
 
-The regression checks the first face reached by a ray up the axis and by another just inside
-the rim. It also checks shell count, volume and full body validity. It fails on the upstream
-parent and passes on the fix. Rotating the cylinder seam by 90° also gives an open bore.
-Six related boolean regressions passed. All 3,013 cases for `topology.proto_topology_p3`
-and 3,138 cases for `curve.curve_p6` matched their recorded results.
+Commit `2e8401099` uses the native edge tolerances and part-scale rounding when it
+rebuilds a shared rim. At twice the zone tolerance, a separate fault in the intersection
+search gave different answers around two concentric circles. Commit `8894c6dc2` uses the
+semi-axis bounds to establish separation over both arcs and at their vertices when the
+two search bands meet at their outer limit. This preserves the valid open bore at
++0.0000101 mm.
 
-Across the 24 offsets in the original report, 22 give a valid single shell with an open bore.
-The two cases exactly 0.00002 mm inside and outside the rim still fail `CheckLevel::All`.
-The outside case also fails record conversion. Running the seven critical offsets with all
-opt-in fixes enabled gives the same two exceptions.
+The regression checks the first surface hit from below, shell count, analytic volume,
+record conversion and full body validity. It also measures the inner annulus and the
+lowest vertex on the outer cut. All ten targeted boolean tests passed against upstream
+`df0859994`. Both 0.00002 mm cases also passed with the cylinder seam rotated 90°.
+
+All 24 offsets from the original report produced one valid shell with an open bore,
+a valid record and the expected volume, both with the default kernel and with all
+optional fixes enabled.
+
+Two additional positive offsets still reproduce failures present before this change.
+At +0.0000125 mm the boolean refuses the cut. At +0.000015 mm it returns a nonmanifold
+body. The disagreement between tolerances inside this band is tracked for other
+geometries in [SolidCraft issue #20073](https://github.com/tangency-labs/solidcraft/issues/20073).
