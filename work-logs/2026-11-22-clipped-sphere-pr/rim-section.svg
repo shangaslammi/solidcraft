@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="792" height="464" viewBox="0 0 792 464">
+  <title>Artboard 1</title>
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <rdf:Description rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:title>Clipped sphere and bore in radial section</dc:title>
+        <dc:date>2026-11-22T00:00:00Z</dc:date>
+      </rdf:Description>
+    </rdf:RDF>
+  </metadata>
+  <g id="Layer_1" data-name="Layer 1">
+    <rect x="0" y="0" width="792" height="464" fill="#ffffff"/>
+    <text transform="matrix(1 0 0 1 28 35)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="20" font-weight="bold" fill="#000000"><tspan x="0" y="0">The bore meets the sphere 20 nm above the cap</tspan></text>
+    <text transform="matrix(1 0 0 1 28 60)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" fill="#000000"><tspan x="0" y="0">Radial section of a sphere of radius 10 mm. The bore extends 15 nm beyond the old rim.</tspan></text>
+    <rect x="74" y="259" width="320" height="130" fill="#dce9f5"/>
+    <polygon points="242.5,103 242.5,193.9996615 249.3249266,184.8997102 256.1498532,175.7997557 262.9747799,166.6997979 269.7997065,157.5998367 276.6246331,148.4998722 283.4495597,139.3999044 290.2744863,130.2999333 297.099413,121.1999588 303.9243396,112.0999811 310.7492662,103" fill="#f0f0f0"/>
+    <line x1="74" y1="324" x2="394" y2="324" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5"/>
+    <polyline points="145,324 154.75,310.9999966 164.5,297.9999865 174.25,284.9999695 184,271.9999458 193.75,258.9999154 203.5,245.9998781 213.25,232.9998341 223,219.9997833 232.75,206.9997258 242.5,193.9996615" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5"/>
+    <line x1="242.5" y1="324" x2="242.5" y2="193.9996615" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5"/>
+    <polyline points="242.5,193.9996615 249.3249266,184.8997102 256.1498532,175.7997557 262.9747799,166.6997979 269.7997065,157.5998367 276.6246331,148.4998722 283.4495597,139.3999044 290.2744863,130.2999333 297.099413,121.1999588 303.9243396,112.0999811 310.7492662,103" fill="none" stroke="#1f6fb2" stroke-width="3" stroke-linejoin="round"/>
+    <line x1="242.5" y1="193.9996615" x2="242.5" y2="103" fill="none" stroke="#1f6fb2" stroke-width="3" stroke-linejoin="round"/>
+    <polyline points="71,103 71,397 394,397" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="67" y1="389" x2="71" y2="389" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 37 393)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">−10</tspan></text>
+    <line x1="67" y1="324" x2="71" y2="324" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 47 328)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">0</tspan></text>
+    <line x1="67" y1="259" x2="71" y2="259" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 39 263)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">10</tspan></text>
+    <line x1="67" y1="194" x2="71" y2="194" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 39 198)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">20</tspan></text>
+    <line x1="67" y1="129" x2="71" y2="129" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 39 133)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">30</tspan></text>
+    <line x1="80" y1="397" x2="80" y2="401" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 80 417)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">−10</tspan></text>
+    <line x1="145" y1="397" x2="145" y2="401" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 145 417)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">0</tspan></text>
+    <line x1="210" y1="397" x2="210" y2="401" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 210 417)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">10</tspan></text>
+    <line x1="275" y1="397" x2="275" y2="401" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 275 417)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">20</tspan></text>
+    <line x1="340" y1="397" x2="340" y2="401" fill="none" stroke="#999999" stroke-width="1.5" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 340 417)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">30</tspan></text>
+    <text transform="matrix(1 0 0 1 28 90)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">Height above the cap (nm)</tspan></text>
+    <text transform="matrix(1 0 0 1 235 445)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0" y="0">Radial offset from the old rim (nm)</tspan></text>
+    <line x1="247.5" y1="193.9996615" x2="299" y2="193.9996615" fill="none" stroke="#999999" stroke-linejoin="round" stroke-dasharray="3 3"/>
+    <line x1="295" y1="193.9996615" x2="295" y2="324" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <line x1="291" y1="193.9996615" x2="299" y2="193.9996615" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <line x1="291" y1="324" x2="299" y2="324" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 305 235)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" fill="#000000"><tspan x="0" y="0">20 nm</tspan></text>
+    <line x1="145" y1="330" x2="145" y2="366" fill="none" stroke="#999999" stroke-linejoin="round" stroke-dasharray="3 3"/>
+    <line x1="145" y1="358" x2="145" y2="366" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <line x1="242.5" y1="330" x2="242.5" y2="366" fill="none" stroke="#999999" stroke-linejoin="round" stroke-dasharray="3 3"/>
+    <line x1="242.5" y1="358" x2="242.5" y2="366" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <line x1="145" y1="362" x2="242.5" y2="362" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 193.75 381)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" fill="#000000" text-anchor="middle"><tspan x="0" y="0">15 nm</tspan></text>
+    <polyline points="217,111 231,111 240.5,122" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 165 115)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">Bore wall</tspan></text>
+    <polyline points="289,133 313,117 327,117" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 332 121)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">Sphere</tspan></text>
+    <text transform="matrix(1 0 0 1 250 122)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">solid</tspan></text>
+    <polyline points="114,240 129,240 145,320" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 88 211)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#000000"><tspan x="0" y="0">Old sphere rim</tspan></text>
+    <text transform="matrix(1 0 0 1 88 231)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">r = 8 mm</tspan></text>
+    <polyline points="245.5,192.9996615 369,146 425,146" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 440 150)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#000000"><tspan x="0" y="0">Sphere–bore intersection</tspan></text>
+    <text transform="matrix(1 0 0 1 440 171)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">r = 8.000015 mm</tspan></text>
+    <text transform="matrix(1 0 0 1 440 188)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">z ≈ −5.999980 mm</tspan></text>
+    <polyline points="374,272 404,246 425,246" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 440 250)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#000000"><tspan x="0" y="0">Cap tolerance band</tspan></text>
+    <text transform="matrix(1 0 0 1 440 271)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">The band extends 10 nm on each side of z = −6 mm.</tspan></text>
+    <text transform="matrix(1 0 0 1 440 289)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">The new edge clears it by about 10 nm.</tspan></text>
+    <polyline points="246.5,325 367,346 425,346" fill="none" stroke="#555555" stroke-linejoin="round"/>
+    <text transform="matrix(1 0 0 1 440 350)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#000000"><tspan x="0" y="0">Cutter’s bottom rim</tspan></text>
+    <text transform="matrix(1 0 0 1 440 371)" x="0" y="0" xml:space="preserve" font-family="Helvetica, sans-serif" font-size="12" fill="#000000"><tspan x="0" y="0">r = 8.000015 mm, z = −6 mm</tspan></text>
+    <circle cx="145" cy="324" r="4.1" fill="#555555"/>
+    <circle cx="242.5" cy="324" r="4.1" fill="#555555"/>
+    <circle cx="242.5" cy="193.9996615" r="4.1" fill="#1f6fb2"/>
+  </g>
+</svg>
