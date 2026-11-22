@@ -308,6 +308,16 @@ fn move_contacts_to_curve_ends<O: SolutionObject>(
                     continue;
                 }
                 let drop_t = dropped.parameter;
+                // Dropping a source end can also land on an excluded target end.
+                // Reject the move before it can replace or remove the interior root.
+                let target_t = if which == 0 { drop_t } else { end_t };
+                if excluded_target_ends
+                    .iter()
+                    .zip([other_interval.min(), other_interval.max()])
+                    .any(|(&excluded, end)| excluded && target_t == end)
+                {
+                    continue;
+                }
                 // A range solution overlapping the stretch (in either curve's parameter)
                 // already reports that contact as a coincidence. Moving the point across
                 // it onto the range's far end would drop the point there as named twice,
@@ -4338,6 +4348,35 @@ mod tests {
             .unwrap();
         assert_eq!(chain.len(), 1);
         assert_eq!(chain.get(0).unwrap().start.parameters[..2], [0.0, 0.0]);
+
+        // A source end drops onto the bounded target's start, even though the
+        // actual oblique crossing is interior to both curves. Its mask applies
+        // through this indirect route as well as when moving to a target end.
+        let zone = 1e-5;
+        let oblique = polyline(&[
+            [-3.0 * zone, 0.0, 4.8 * zone],
+            [0.0, 0.0, 1.8 * zone],
+            [1.9 * zone, 0.0, -0.1 * zone],
+        ]);
+        let bounded = polyline(&[[0.0, 0.0, 0.0], [0.0, 0.0, 6.0 * zone]]);
+        let crossing = sol(SolutionType::SingleValue, [0.5, 0.3], [0.0, 0.0]);
+        for (mask, expected) in [([false; 2], [1.0, 0.0]), ([true, false], [0.5, 0.3])] {
+            let mut contact = SolutionArray::new();
+            contact.add(&crossing);
+            move_contacts_to_curve_ends(
+                &k,
+                &oblique,
+                &unit(),
+                &bounded,
+                &unit(),
+                2.0 * zone,
+                mask,
+                &mut contact,
+            )
+            .unwrap();
+            assert_eq!(contact.len(), 1);
+            assert_eq!(contact.get(0).unwrap().start.parameters[..2], expected);
+        }
 
         let crosses = |others: &[Solution<H>], gone: &[usize]| {
             let mut s = SolutionArray::new();
