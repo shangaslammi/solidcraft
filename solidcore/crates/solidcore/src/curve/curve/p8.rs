@@ -243,6 +243,7 @@ fn move_contacts_to_curve_ends<O: SolutionObject>(
     other: &Curve,
     other_interval: &Extent1d,
     dist_tol: f64,
+    excluded_target_ends: [bool; 2],
     sols: &mut SolutionArray<O>,
 ) -> Result<()> {
     let mut moved_any = Vec::new();
@@ -270,6 +271,9 @@ fn move_contacts_to_curve_ends<O: SolutionObject>(
             };
             let (sol_on_end, sol_on_drop) = if which == 0 { (t1, t2) } else { (t2, t1) };
             for end in 0..2 {
+                if which == 1 && excluded_target_ends.get(end).copied() == Some(true) {
+                    continue;
+                }
                 if moved {
                     break;
                 }
@@ -828,6 +832,7 @@ impl Curve {
             [None, None],
             0.0,
             true,
+            [false; 2],
         )
     }
 
@@ -867,6 +872,7 @@ impl Curve {
             cache2,
             [None, None],
             0.0,
+            [false; 2],
         )
     }
 
@@ -899,6 +905,7 @@ impl Curve {
         cache2: &mut Option<CurveCache<O>>,
         zone_tols: [Option<f64>; 2],
         contact_tol: f64,
+        excluded_target_ends: [bool; 2],
     ) -> Result<SolutionArray<O>> {
         if opts.handles == [None, None] && opts.analytic_handles == [None, None] {
             let own = operand_handles(self, other);
@@ -919,6 +926,7 @@ impl Curve {
                     &mut None,
                     zone_tols,
                     contact_tol,
+                    excluded_target_ends,
                 )?
                 .without_objects());
         }
@@ -934,6 +942,7 @@ impl Curve {
             zone_tols,
             contact_tol,
             false,
+            excluded_target_ends,
         )
     }
 
@@ -978,6 +987,7 @@ impl Curve {
                 [None, None],
                 0.0,
                 false,
+                [false; 2],
             )?
             .without_objects())
     }
@@ -1003,6 +1013,7 @@ impl Curve {
         zone_tols: [Option<f64>; 2],
         contact_tol: f64,
         own_slots: bool,
+        excluded_target_ends: [bool; 2],
     ) -> Result<SolutionArray<O>> {
         let [h_this, h_other] = opts.handles;
         let same_curve = core::ptr::eq(self, other);
@@ -1465,6 +1476,7 @@ impl Curve {
                 other,
                 other_interval,
                 dist_tol,
+                excluded_target_ends,
                 &mut sols,
             )?;
         }
@@ -4300,7 +4312,8 @@ mod tests {
         let mut sols = SolutionArray::new();
         sols.add(&range);
         sols.add(&point);
-        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, &mut sols).unwrap();
+        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, [false; 2], &mut sols)
+            .unwrap();
         assert_eq!(sols.len(), 2, "the point is kept");
         let kept = sols.get(1).unwrap();
         assert_eq!(kept.solution_type, SolutionType::SingleValue);
@@ -4311,7 +4324,8 @@ mod tests {
         // so it moves there
         let mut alone = SolutionArray::new();
         alone.add(&point);
-        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, &mut alone).unwrap();
+        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, [false; 2], &mut alone)
+            .unwrap();
         assert_eq!(alone.len(), 1);
         assert_eq!(alone.get(0).unwrap().start.parameters[..2], [0.0, 0.0]);
 
@@ -4320,7 +4334,8 @@ mod tests {
         for t in [0.1, 0.3, 0.5] {
             chain.add(&sol(SolutionType::SingleValue, [t, t], [0.0, 0.0]));
         }
-        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, &mut chain).unwrap();
+        move_contacts_to_curve_ends(&k, &a, &unit(), &b, &unit(), tol, [false; 2], &mut chain)
+            .unwrap();
         assert_eq!(chain.len(), 1);
         assert_eq!(chain.get(0).unwrap().start.parameters[..2], [0.0, 0.0]);
 

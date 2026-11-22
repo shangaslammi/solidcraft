@@ -154,7 +154,8 @@ use crate::geom::tol::{
 use crate::intersect::curve_class::p5::ExtractOptions;
 use crate::intersect::curve_class::{ClassificationInit, CurveClassification, CurveInterval};
 use crate::intersect::point_class::{
-    ClassGeometry, ClassObject, ClassObjectKind, PointClassType, PointClassification,
+    periodic_trim_witness, ClassGeometry, ClassObject, ClassObjectKind, PointClassType,
+    PointClassification,
 };
 use crate::kernel::Kernel;
 use crate::math::{max2, min2, Point2, Point3, Vec3, BIG_DOUBLE, EFF_ZERO, EFF_ZERO_SQRT};
@@ -162,6 +163,7 @@ use crate::nurbs::b_spline_curve::p2::BoundingBoxRequest;
 use crate::nurbs::b_spline_curve_n_lib::TrimMode;
 use crate::nurbs::knots::Side;
 use crate::query::face::p2 as face_p2;
+use crate::surface::implicit::AnalyticSupport;
 use crate::surface::surface::p6::COINCIDENT_TANGENT_SINE;
 
 use super::p1::proto::{can_imprint, find_position_from_pcs, topo_dimension};
@@ -477,7 +479,11 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
         let region = crossing_region(
             k, geometry, crossing, along, pc1, pc2, position, point_tol, limit,
         )?;
-        let within = self.find_proto_vertex_within(k, position, point_tol, Some(&region))?;
+        let within =
+            self.find_proto_vertex_within_if(k, position, point_tol, Some(&region), |id| {
+                self.proto_vertex_incidence_conflicts(k, geometry, id, [pc1, pc2])
+                    .map(|conflict| !conflict)
+            })?;
         let found = self.find_proto_vertex_holding(k, geometry, position, pc1, pc2, within)?;
         // Not upstream: a point classified on a vertex is that vertex's point, whatever the
         // position found for the pair (the average of the two objects' points), so the proto
@@ -2418,7 +2424,10 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
             None => BIG_DOUBLE,
         };
         for &id in self.proto_vertices() {
-            if Some(id) == within || !self.is_same_edge_face_crossing(k, geometry, id, pc1, pc2)? {
+            if Some(id) == within
+                || !self.is_same_edge_face_crossing(k, geometry, id, pc1, pc2)?
+                || self.proto_vertex_incidence_conflicts(k, geometry, id, [pc1, pc2])?
+            {
                 continue;
             }
             let dist = distance(id)?;
@@ -2428,6 +2437,81 @@ impl<O: ClassObject> ProtoTopologyManager<O> {
             }
         }
         Ok(held)
+    }
+
+    /// A shared event must keep each fixed native vertex on every opposite defining face.
+    /// Check both definition orders so reach regions cannot erase a proved separation.
+    pub(crate) fn proto_vertex_incidence_conflicts(
+        &self,
+        k: &Kernel,
+        geometry: &impl ProtoBrep<O>,
+        id: ProtoVertexId,
+        incoming: [&PointClassification<O>; 2],
+    ) -> Result<bool> {
+        let pv = self
+            .proto_vertex(id)
+            .ok_or(dangling("proto vertex is deleted"))?;
+        for &def in pv.vertex_definitions() {
+            let def = self
+                .vertex_def(def)
+                .ok_or(dangling("vertex definition is deleted"))?;
+            let stored = [def.brep_point_classif(1), def.brep_point_classif(2)];
+            for (fixed, faces) in [(incoming, stored), (stored, incoming)] {
+                let [first, second] = fixed;
+                let [opposite_first, opposite_second] = faces;
+                for (fixed, opposite) in [(first, opposite_second), (second, opposite_first)] {
+                    let Some(vertex) = fixed.vertex_object() else {
+                        continue;
+                    };
+                    let Some(marker) = periodic_trim_witness(k, geometry, vertex)? else {
+                        continue;
+                    };
+                    let Some(vertex_zone) = geometry.topology_tolerance(vertex) else {
+                        continue;
+                    };
+                    let Some(vertex_face_zone) = fixed
+                        .face()
+                        .and_then(|face| geometry.topology_tolerance(face))
+                    else {
+                        continue;
+                    };
+                    let Some(face) = opposite.face().or_else(|| opposite.face_object()) else {
+                        continue;
+                    };
+                    let Some(surface) = geometry
+                        .face_surface(face)
+                        .flatten()
+                        .and_then(|s| geometry.surface(s))
+                    else {
+                        continue;
+                    };
+                    let Some(face_zone) = geometry.topology_tolerance(face) else {
+                        continue;
+                    };
+                    let Some(object_zone) = opposite
+                        .object()
+                        .and_then(|o| geometry.topology_tolerance(o))
+                    else {
+                        continue;
+                    };
+                    if ![face_zone, object_zone, vertex_zone, vertex_face_zone]
+                        .iter()
+                        .all(|zone| zone.is_finite() && *zone >= 0.0)
+                        // Raised stitched zones retain their covering-gap policy.
+                        || object_zone > face_zone
+                        || vertex_zone > vertex_face_zone
+                    {
+                        continue;
+                    }
+                    if AnalyticSupport::of(surface).is_some_and(|support| {
+                        marker.outside_surface(k, &support, face_zone.max(object_zone))
+                    }) {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        Ok(false)
     }
 
     /// Not upstream (#17595; see the module's Deviations). Whether the proto vertex `pv`

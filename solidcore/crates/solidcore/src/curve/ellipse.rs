@@ -18,7 +18,7 @@ pub use p2::{
 };
 
 use crate::curve::curve::{Curve, CurveKind};
-use crate::geom::tol::{coincidence_reach_3d, within_contact_tol};
+use crate::geom::tol::coincidence_reach_3d;
 use crate::kernel::Kernel;
 use crate::math::Point3;
 use crate::nurbs::math::gamma;
@@ -69,25 +69,21 @@ impl RadialSupport {
         })
     }
 
-    /// Proves separation past coincidence where the uncertainty bands have no resolved
-    /// interior overlap. The search band is open at its boundary, read to coordinate
-    /// rounding. Interior overlap retains the current tolerant classification pipeline.
-    /// Triangle inequalities hold for every arc trim and orientation. Nonfinite inputs
-    /// or intermediate values give no separation proof.
-    pub(crate) fn disjoint(
-        self,
-        k: &Kernel,
-        zone: f64,
-        other: Self,
-        other_zone: f64,
-        search_reach: f64,
-    ) -> bool {
+    /// Proves separation past coincidence. Triangle inequalities hold for every arc trim
+    /// and orientation. Nonfinite inputs or intermediate values give no separation proof.
+    pub(crate) fn disjoint(self, k: &Kernel, zone: f64, other: Self, other_zone: f64) -> bool {
+        self.gap(other).is_some_and(|(gap, size)| {
+            [zone, other_zone]
+                .iter()
+                .all(|z| z.is_finite() && *z >= 0.0)
+                && gap > coincidence_reach_3d(k, zone, other_zone, size)
+        })
+    }
+
+    fn gap(self, other: Self) -> Option<(f64, f64)> {
         let (a, b) = (self.center, other.center);
-        if ![a.x, a.y, a.z, b.x, b.y, b.z, zone, other_zone, search_reach]
-            .iter()
-            .all(|v| v.is_finite())
-        {
-            return false;
+        if ![a.x, a.y, a.z, b.x, b.y, b.z].iter().all(|v| v.is_finite()) {
+            return None;
         }
         let distance = a.distance(b);
         let gaps = [
@@ -97,10 +93,8 @@ impl RadialSupport {
         ];
         let size = a.max_dimension().max(b.max_dimension()) + self.upper.max(other.upper);
         if !size.is_finite() || !gaps.iter().all(|v| v.is_finite()) {
-            return false;
+            return None;
         }
-        let reach = coincidence_reach_3d(k, zone, other_zone, size);
-        gaps.into_iter()
-            .any(|gap| gap > reach && within_contact_tol(search_reach - gap, 0.0, size))
+        Some((gaps.into_iter().fold(f64::NEG_INFINITY, f64::max), size))
     }
 }
