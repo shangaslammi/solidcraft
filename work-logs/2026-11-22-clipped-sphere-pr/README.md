@@ -29,6 +29,8 @@ The [test-only commit](https://github.com/shangaslammi/solidcraft/commit/312220f
 
 The integrated branch passed 25 focused kernel and Boolean tests, the corpus replay and its manifest check. All 128 offset, seam and switch combinations and 19 geometry cases passed. The 17 affected golden units covered 41,047 cases with zero changes. Formatting and both workspace Clippy checks passed on `312917ba6`. Kernel library Clippy and the WebAssembly check also passed after integrating upstream’s typed surface errors. All builds used one job.
 
+The shared frame check replaces three copies of the same eight-epsilon test for unit lengths and perpendicular axes. With upstream `9776fb9b0` integrated, the old and shared predicates and three constructors agreed on 29 boundary and invalid frames. The bore regression, saved subtraction and 6 curve and surface tests passed. All 45,098 cases in the 18 affected golden units matched. Formatting, repository checks, both workspace Clippy checks and the kernel WebAssembly check passed with one build job. [Shared frame check](https://github.com/shangaslammi/solidcraft/commit/0ea42f5084d77a01aae5da04796449bdfb153408) · [SolidCraft main](https://github.com/tangency-labs/solidcraft/commit/9776fb9b0f94e6ec3e0ea10562c4f39e9c7b753a)
+
 | Upstream item | Title |
 | --- | --- |
 | [Filed issue #20780](https://github.com/tangency-labs/solidcraft/issues/20780) and [report text](upstream-issue.md) | Boolean cut leaves a blind bore sealed at a clipped sphere’s rim |
