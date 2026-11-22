@@ -22,3 +22,14 @@ Both bodies were produced by replaying the same corpus operands and drawn with `
 Each marked point in the section represents a circle. With the cutter 15 nm wider than the original rim, its wall meets the sphere 20.000052 nm above the cap. The cap’s face tolerance is 10 nm. The two length scales explain how the kernel could find the correct intersection and then join it to the wrong rim. [Editable VectorCraft drawing](rim-section.vectorcraft)
 
 On unmodified upstream the eight offsets gave the same outcomes with zero kernel fixes and with all 28 enabled. At 7.99999 mm all 28 switches, enabled individually, also left the bore sealed. [Eight offsets in both configurations](baseline-matrix.tsv) · [Individual switch results](baseline-individual-flags.tsv)
+
+## Proposed upstream submission
+
+The [test-only commit](https://github.com/shangaslammi/solidcraft/commit/312220fd846a4d28bdcccbd148f95f3cf6255560) reproduces the false cap. The [implementation](https://github.com/shangaslammi/solidcraft/commit/92bbf163485affb9a5cb0476fff7ae400b2063c8) is based on [SolidCraft main at `3f0967dab`](https://github.com/tangency-labs/solidcraft/commit/3f0967dabd614264fb7c0022a20a07a67ec2cf5b). On upstream `6f4ea5dd2` the eight-offset switch matrix and all 28 individual-switch results matched the earlier run. On the submission branch, the saved fixed body and its rendered PNG matched the earlier comparison byte for byte.
+
+The integrated branch passed 25 focused kernel and Boolean tests, the corpus replay and its manifest check. All 128 offset, seam and switch combinations and 19 geometry cases passed. The 17 affected golden units covered 41,047 cases with zero changes. Formatting and both workspace Clippy checks passed on `312917ba6`. Kernel library Clippy and the WebAssembly check also passed after integrating upstream’s typed surface errors. All builds used one job.
+
+| Upstream item | Proposed title |
+| --- | --- |
+| [Filed issue #20780](https://github.com/tangency-labs/solidcraft/issues/20780) and [report text](upstream-issue.md) | Boolean cut leaves a blind bore sealed at a clipped sphere’s rim |
+| [Draft claim](upstream-claim.md) and [pull request](upstream-pr.md) | Booleans: open a blind bore at a clipped sphere’s rim (#20780) |
