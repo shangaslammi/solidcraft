@@ -29,7 +29,8 @@ All 24 offsets from the original report produced one valid shell with an open bo
 a valid record and the expected volume, both with the default kernel and with all
 optional fixes enabled.
 
-Two additional positive offsets still reproduce failures present before this change.
-At +0.0000125 mm the boolean refuses the cut. At +0.000015 mm it returns a nonmanifold
-body. The disagreement between tolerances inside this band is tracked for other
-geometries in [SolidCraft issue #20073](https://github.com/tangency-labs/solidcraft/issues/20073).
+Two positive offsets still failed in this revision. At +0.0000125 mm the Boolean
+refused the cut. At +0.000015 mm it returned a nonmanifold body. The
+[November 22 follow-up](2026-11-22-clipped-sphere-bore.md) fixes both offsets and
+records the remaining straight-edge case from
+[SolidCraft issue #20073](https://github.com/tangency-labs/solidcraft/issues/20073).
