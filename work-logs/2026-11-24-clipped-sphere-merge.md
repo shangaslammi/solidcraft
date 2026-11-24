@@ -1,0 +1,5 @@
+# Clipped-sphere bore with upstream tangency and fillet changes
+
+Upstream now records the other face while checking whether an apparent overlap on a boundary edge is a single tangency. The clipped-sphere fix retains the opposite analytic surface and its tolerance to check whether two rims are separated. The merge keeps both pieces of information. Both analytic surface construction paths now use the shared eight-epsilon axis check. [Merge commit](https://github.com/shangaslammi/solidcraft/commit/698d89807c98724d1bff5fdb63a7a19fab3cdcda) · [Upstream main](https://github.com/tangency-labs/solidcraft/commit/fc74246dda5bd4d43a378497cbe8cd37f253cef2)
+
+The bore regression passed at the original offsets, including ±0.0000125, ±0.000015 and ±0.00002 mm. Replaying the saved operands reported zero relative volume deviation. Both upstream tangential-insert regressions, the 12-degree cone support test and the short-rib fillet round-trip passed. All 45,692 golden cases in the 19 affected units matched their recorded results. Both workspaces passed Clippy, and the kernel passed the WebAssembly build check. [Upstream PR](https://github.com/tangency-labs/solidcraft/pull/20844)
